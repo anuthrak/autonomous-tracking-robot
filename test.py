@@ -10,8 +10,6 @@ kit = ServoKit(channels=16)
 # Initial Positions
 pan_angle, tilt_angle = 90.0, 90.0
 pan_vel, tilt_vel = 0.0, 0.0
-
-
 fire_angle = 90.0
 
 # Turret Feel
@@ -26,6 +24,11 @@ keys = {"w": False, "s": False, "a": False, "d": False}
 # FUNCTIONS
 def calibrate():
     global pan_angle, tilt_angle
+    
+    # Initial Positions
+    pan_angle, tilt_angle = 90.0, 90.0
+    pan_vel, tilt_vel = 0.0, 0.0
+    fire_angle = 90.0
     
     kit.servo[0].angle = pan_angle
     print("Pan servo calibrated to 90 degrees.")
@@ -99,26 +102,31 @@ threading.Thread(target=lambda:
                      delay_second_char=0.001
                      ),daemon=True).start()
 
+# Wrap main function in try/catch for lifecycle management
 try:
     print("Physics loop set to Active.")
     time.sleep(1.5)
     print("============================")
     print("Turret fully online. Press WASD for movement. Crtl + C to exit.")
-    time.sleep(1.5)
     print("============================")
     physics_loop()
-    
+
+# Unknown Exceptions: graceful shutdown
 except Exception as e:
-    print("Shutting down due to: {e}")
+    print(f"Shutting down due to: {e}")
     running = False
-    
+
+# Manual shutdown via Ctrl + C
 except KeyboardInterrupt:
     print("User shutting down...")
     running = False
+    time.sleep(1.5)
     calibrate()
     time.sleep(1.5)
-    
+
+# Ensure terminal is clear of sshkeyboard
 finally:
+    print("============================")
     print("Turret has gone offline.")
     print("============================")
     os.system("stty echo")
