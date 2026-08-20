@@ -1,4 +1,5 @@
 import cv2
+import numpy as np
 import time
 from turret_vision import TurretVision
 
@@ -17,6 +18,10 @@ def main():
     cv2.createTrackbar("S Max", "Controls", 255, 255, _nothing)
     cv2.createTrackbar("V Min", "Controls", 0, 255, _nothing)
     cv2.createTrackbar("V Max", "Controls", 255, 255, _nothing)
+    # A window with only trackbars and no image ever shown in it can render
+    # blank/collapsed on some OpenCV GUI backends. Showing a dummy image
+    # forces it to actually draw.
+    cv2.imshow("Controls", np.zeros((1, 400), np.uint8))
 
     print("Tune the trackbars until only your target object is white in the Mask window.")
     print("Press 'p' to print the current HSV range, 'q' to quit.")
