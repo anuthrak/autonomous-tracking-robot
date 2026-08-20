@@ -19,12 +19,14 @@ def main():
             frame = vision.get_frame()
             
             if frame is not None:
-                # 3. Swap colors: Camera (RGB) -> OpenCV (BGR)
-                bgr_frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
-                
+                # 3. picamera2's "RGB888" format is actually delivered in BGR
+                # byte order already (a legacy-picamera compatibility quirk),
+                # so the frame is already correct for OpenCV as-is.
+                bgr_frame = frame
+
                 # 4. Draw a simple crosshair at frame center (for your turret testing!)
                 cv2.drawMarker(bgr_frame, center, (0, 255, 0), cv2.MARKER_CROSS, 20, 2)
-                
+
                 # 5. Display the window
                 cv2.imshow("Turret Eye - 60 FPS", bgr_frame)
             
