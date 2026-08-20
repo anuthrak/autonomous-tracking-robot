@@ -8,6 +8,8 @@ from picamera2 import Picamera2
 
 class TurretVision:
     def __init__(self, width=640, height=480, fps=60):
+        self.width = width
+        self.height = height
         self.picam2 = Picamera2()
         
         self.config = self.picam2.create_preview_configuration(
@@ -27,9 +29,16 @@ class TurretVision:
         
     def _update(self):
         while self.running:
-            # Capture frame into a numpy array
-            new_frame = self.picam2.capture_array()
-                
+            try:
+                # Capture frame into a numpy array
+                new_frame = self.picam2.capture_array()
+            except Exception as e:
+                # Don't let a dropped/disconnected camera kill the thread
+                # silently and leave get_frame() returning a stale frame
+                # forever with no indication anything went wrong.
+                print(f"[WARN] Camera capture failed: {e}")
+                continue
+
             with self.lock:
                 self.frame = new_frame
 

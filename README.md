@@ -58,3 +58,41 @@ The PCA9685 features 16 rows of 3-pin headers. Each row is color-coded on many b
 
 ## Software Set-up
 
+All of this runs **on the Pi itself** — connect first via SSH (`ssh pi@<pi-ip>`) or VNC Viewer (see Hardware Set-up above), then work from a terminal on the Pi.
+
+### 1. Get the code onto the Pi (first time only)
+```bash
+git clone <this-repo-url>
+cd autonomous-tracking-robot
+```
+If it's already cloned, just `cd` into the existing folder and `git pull` to update.
+
+### 2. Install the camera library via apt (first time only)
+`picamera2` binds to the system `libcamera` stack and isn't reliably pip-installable, so it's installed system-wide:
+```bash
+sudo apt install -y python3-picamera2
+```
+
+### 3. Create the virtual environment (first time only)
+Use `--system-site-packages` so the venv can still see the apt-installed `picamera2`:
+```bash
+python3 -m venv --system-site-packages .venv
+```
+
+### 4. Activate the venv and install Python deps
+Do this every time you open a new terminal session:
+```bash
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+### 5. Run it
+- **Turret control** (WASD to pan/tilt, F to fire, Ctrl+C to shut down safely):
+  ```bash
+  python3 main.py
+  ```
+- **Camera test** (live feed with a center crosshair, needs a display — run this over VNC, not plain SSH):
+  ```bash
+  python3 vision_test.py
+  ```
+

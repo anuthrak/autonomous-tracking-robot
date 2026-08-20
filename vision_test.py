@@ -4,8 +4,10 @@ from turret_vision import TurretVision
 
 def main():
     # 1. Initialize our vision class at 640x480 for speed
-    vision = TurretVision(width=640, height=480, fps=60)
-    
+    width, height = 640, 480
+    vision = TurretVision(width=width, height=height, fps=60)
+    center = (width // 2, height // 2)
+
     print("Starting Live Feed... Press 'q' in the window to quit.")
     
     # Give the background thread a moment to grab the first few frames
@@ -20,8 +22,8 @@ def main():
                 # 3. Swap colors: Camera (RGB) -> OpenCV (BGR)
                 bgr_frame = cv2.cvtColor(frame, cv2.COLOR_RGB2BGR)
                 
-                # 4. Draw a simple crosshair (for your turret testing!)
-                cv2.drawMarker(bgr_frame, (200, 290), (0, 255, 0), cv2.MARKER_CROSS, 20, 2)
+                # 4. Draw a simple crosshair at frame center (for your turret testing!)
+                cv2.drawMarker(bgr_frame, center, (0, 255, 0), cv2.MARKER_CROSS, 20, 2)
                 
                 # 5. Display the window
                 cv2.imshow("Turret Eye - 60 FPS", bgr_frame)

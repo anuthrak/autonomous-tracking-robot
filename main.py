@@ -9,14 +9,11 @@ import turret_logic as turret
 def press(key):
     if key in turret.keys:
         turret.keys[key] = True
-        
-    # Firing mechanism    
+
+    # Firing mechanism (non-blocking: advanced by the physics loop
+    # so this callback never stalls the keyboard listener thread)
     elif key == "f":
-        for a in range(90, 151, 5): 
-            turret.kit.servo[2].angle = a
-            time.sleep(0.01)
-        time.sleep(0.1)
-        turret.kit.servo[2].angle = 90
+        turret.request_fire()
 
 # On_release function
 def release(key):

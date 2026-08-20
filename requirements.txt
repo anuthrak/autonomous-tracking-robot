@@ -1,0 +1,16 @@
+# Servo / motor control (Raspberry Pi + PCA9685 driver)
+adafruit-circuitpython-servokit>=1.3.19
+adafruit-blinka>=8.0.0
+
+# Keyboard input (WASD + fire)
+sshkeyboard>=2.3.3
+
+# Computer vision
+opencv-python>=4.9.0
+
+# Camera capture — Raspberry Pi only. Not reliably pip-installable off-Pi
+# (it binds to system libcamera). Install via apt instead:
+#   sudo apt install -y python3-picamera2
+# If using a venv, create it with --system-site-packages so it can see the
+# apt-installed package: `python3 -m venv --system-site-packages .venv`
+picamera2>=0.3.17; platform_machine == "aarch64" or platform_machine == "armv7l"
