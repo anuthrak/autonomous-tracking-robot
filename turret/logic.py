@@ -1,5 +1,12 @@
-# turret_logic.py
+# turret/logic.py
 import time
+
+from config import (
+    PAN_CHANNEL, TILT_CHANNEL, FIRE_CHANNEL,
+    ACC, FRC, TIME_LOOP, SERVO_EPS,
+    FIRE_MIN, FIRE_MAX, FIRE_STEP, FIRE_HOLD_TICKS,
+    KP,
+)
 
 # --- Hardware Setup ---
 # On real Raspberry Pi hardware this binds to the PCA9685 over I2C. Off-Pi
@@ -29,16 +36,12 @@ pan_angle, tilt_angle = 90.0, 90.0
 pan_vel, tilt_vel = 0.0, 0.0
 running = True
 
-# Physics Constants
-ACC = 0.3
-FRC = 0.90
-TIME_LOOP = 0.02
-
-# Fire Constants (fire servo sweeps 90 -> 150 and snaps back)
-FIRE_MIN = 90.0
-FIRE_MAX = 150.0
-FIRE_STEP = 5.0
-FIRE_HOLD_TICKS = max(1, round(0.1 / TIME_LOOP))
+# Control mode ("MANUAL" | "AUTO") and the single arbiter that's allowed to
+# act on it. Keyboard and vision each submit a request (set_key /
+# set_target_error) instead of writing pan_vel/tilt_vel directly, so the two
+# can never race each other in the same tick. See NOTES.md ("v1.1") for why.
+mode = "MANUAL"
+target_dx, target_dy = 0.0, 0.0
 
 # Keyboard State
 keys = {"w": False, "s": False, "a": False, "d": False}
@@ -69,17 +72,35 @@ def calibrate():
     fire_state = "idle"
     fire_hold_counter = 0
 
-    _write_servo(0, pan_angle)
+    _write_servo(PAN_CHANNEL, pan_angle)
     print("Pan servo calibrated to 90 degrees.")
     time.sleep(1.0)
 
-    _write_servo(1, tilt_angle)
+    _write_servo(TILT_CHANNEL, tilt_angle)
     print("Tilt servo calibrated to 90 degrees.")
     time.sleep(1.0)
 
-    _write_servo(2, fire_angle)
+    _write_servo(FIRE_CHANNEL, fire_angle)
     print("Fire servo calibrated to 90 degrees.")
     time.sleep(1.0)
+
+def set_key(key, pressed):
+    """Keyboard's only way to influence the turret: submit a request, don't
+    touch pan_vel/tilt_vel directly. Safe to call for any key; ignored if not
+    one of the tracked movement keys."""
+    if key in keys:
+        keys[key] = pressed
+
+def set_target_error(dx, dy):
+    """Vision's only way to influence the turret (v2.0 scaffold): submit the
+    current pixel offset from center. Only consulted while mode == 'AUTO'."""
+    global target_dx, target_dy
+    target_dx, target_dy = dx, dy
+
+def toggle_mode():
+    global mode
+    mode = "AUTO" if mode == "MANUAL" else "MANUAL"
+    print(f"[MODE] {mode}")
 
 def request_fire():
     """Non-blocking: called from the keyboard thread, arms the fire
@@ -95,7 +116,7 @@ def _update_fire():
 
     if fire_state == "extending":
         fire_angle = min(FIRE_MAX, fire_angle + FIRE_STEP)
-        _write_servo(2, fire_angle)
+        _write_servo(FIRE_CHANNEL, fire_angle)
         if fire_angle >= FIRE_MAX:
             fire_state = "holding"
 
@@ -106,7 +127,7 @@ def _update_fire():
 
     elif fire_state == "retracting":
         fire_angle = FIRE_MIN
-        _write_servo(2, fire_angle)
+        _write_servo(FIRE_CHANNEL, fire_angle)
         fire_state = "idle"
 
 def smooth_reset():
@@ -128,33 +149,47 @@ def smooth_reset():
         pan_angle += pan_vel
         tilt_angle += tilt_vel
 
-        _write_servo(0, max(0, min(180, pan_angle)))
-        _write_servo(1, max(0, min(180, tilt_angle)))
+        _write_servo(PAN_CHANNEL, max(0, min(180, pan_angle)))
+        _write_servo(TILT_CHANNEL, max(0, min(180, tilt_angle)))
         time.sleep(TIME_LOOP)
 
-    _write_servo(0, 90)
-    _write_servo(1, 90)
+    _write_servo(PAN_CHANNEL, 90)
+    _write_servo(TILT_CHANNEL, 90)
 
-def physics_loop():
-    global pan_angle, tilt_angle, pan_vel, tilt_vel
-    
-    while running:
+def _control_step():
+    """The only place pan_vel/tilt_vel are adjusted from external input.
+    Gated on `mode` so keyboard and vision (once wired in for v2.0) can never
+    write to the same tick's velocity at once — each only ever submits a
+    request (set_key / set_target_error) for this to act on."""
+    global pan_vel, tilt_vel
+
+    if mode == "MANUAL":
         if keys["w"]: tilt_vel += ACC
         if keys["s"]: tilt_vel -= ACC
         if keys["a"]: pan_vel += ACC
         if keys["d"]: pan_vel -= ACC
-        
+
+    elif mode == "AUTO":
+        pan_vel += KP * target_dx
+        tilt_vel += KP * target_dy
+
+def physics_loop():
+    global pan_angle, tilt_angle, pan_vel, tilt_vel
+
+    while running:
+        _control_step()
+
         pan_vel *= FRC
         tilt_vel *= FRC
-        
+
         pan_angle += pan_vel
         tilt_angle += tilt_vel
-        
+
         pan_angle = max(0, min(180, pan_angle))
         tilt_angle = max(0, min(180, tilt_angle))
 
-        _write_servo(0, pan_angle)
-        _write_servo(1, tilt_angle)
+        _write_servo(PAN_CHANNEL, pan_angle)
+        _write_servo(TILT_CHANNEL, tilt_angle)
 
         _update_fire()
 

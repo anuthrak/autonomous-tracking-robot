@@ -3,22 +3,22 @@ import os
 import time
 import threading
 from sshkeyboard import listen_keyboard
-import turret_logic as turret
+from turret import logic as turret
 
 # On_press function
 def press(key):
-    if key in turret.keys:
-        turret.keys[key] = True
+    turret.set_key(key, True)
 
     # Firing mechanism (non-blocking: advanced by the physics loop
     # so this callback never stalls the keyboard listener thread)
-    elif key == "f":
+    if key == "f":
         turret.request_fire()
+    elif key == "m":
+        turret.toggle_mode()
 
 # On_release function
 def release(key):
-    if key in turret.keys:
-        turret.keys[key] = False
+    turret.set_key(key, False)
 
 # Start Keyboard Thread
 threading.Thread(target=lambda: listen_keyboard(
@@ -34,7 +34,7 @@ try:
     turret.calibrate()
     print("Physics loop set to Active.")
     print("============================")
-    print("\nTurret Online. WASD to move, F to fire, Ctrl+C to exit.")
+    print("\nTurret Online. WASD to move, F to fire, M to toggle mode, Ctrl+C to exit.")
     turret.physics_loop()
 
 # Unknown Exceptions

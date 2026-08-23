@@ -1,0 +1,509 @@
+<!doctype html>
+<title>Signal &amp; Servo</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  /* Dark-first: bare :root holds the dark palette; light is the override. */
+  :root{
+    --bg:#0B0E14;
+    --surface:#131826;
+    --surface-2:#1A2136;
+    --ink:#E9EDF5;
+    --muted:#8B96AC;
+    --border:#262F45;
+    --brass:#D6A55E;
+    --brass-soft:#2A2115;
+    --brass-ink:#F0D2A0;
+    --cyan:#5FD4D0;
+    --cyan-soft:#102B2A;
+    --cyan-ink:#A9EDE9;
+    --font-display:'Archivo', ui-sans-serif, system-ui, sans-serif;
+    --font-body:'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-mono:'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  }
+  @media (prefers-color-scheme: light){
+    :root:not([data-theme="dark"]){
+      --bg:#EDEFF3;
+      --surface:#FFFFFF;
+      --surface-2:#E3E7EF;
+      --ink:#14181F;
+      --muted:#5B6472;
+      --border:#C7CDD8;
+      --brass:#8C5B15;
+      --brass-soft:#F1E2C8;
+      --brass-ink:#6B4410;
+      --cyan:#0E7A76;
+      --cyan-soft:#DCF0EE;
+      --cyan-ink:#0A5C59;
+    }
+  }
+  :root[data-theme="light"]{
+    --bg:#EDEFF3;
+    --surface:#FFFFFF;
+    --surface-2:#E3E7EF;
+    --ink:#14181F;
+    --muted:#5B6472;
+    --border:#C7CDD8;
+    --brass:#8C5B15;
+    --brass-soft:#F1E2C8;
+    --brass-ink:#6B4410;
+    --cyan:#0E7A76;
+    --cyan-soft:#DCF0EE;
+    --cyan-ink:#0A5C59;
+  }
+
+  *{ box-sizing:border-box; }
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--font-body);
+    line-height:1.6;
+  }
+  main{ max-width:920px; margin:0 auto; padding:4.5rem 1.5rem 6rem; }
+
+  .eyebrow{
+    font-family:var(--font-mono);
+    font-size:0.72rem;
+    letter-spacing:0.14em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin:0 0 1rem;
+  }
+  h1{
+    font-family:var(--font-display);
+    font-weight:800;
+    font-size:clamp(2.2rem, 5vw, 3.1rem);
+    letter-spacing:-0.01em;
+    margin:0 0 0.7rem;
+    text-wrap:balance;
+  }
+  .lede{ color:var(--muted); font-size:1.08rem; max-width:60ch; margin:0 0 0.5rem; }
+  .stage-pill{
+    display:inline-flex; align-items:center; gap:0.4rem;
+    font-family:var(--font-mono); font-size:0.75rem; letter-spacing:0.04em;
+    color:var(--brass-ink); background:var(--brass-soft);
+    border:1px solid var(--brass); border-radius:999px;
+    padding:0.3rem 0.75rem; margin-top:1.2rem;
+  }
+  .stage-pill::before{ content:""; width:6px; height:6px; border-radius:50%; background:var(--brass); }
+
+  h2{
+    font-family:var(--font-display);
+    font-weight:800;
+    font-size:1.55rem;
+    margin:0 0 0.3rem;
+    text-wrap:balance;
+  }
+  .section-eyebrow{
+    font-family:var(--font-mono); font-size:0.7rem; letter-spacing:0.12em;
+    text-transform:uppercase; color:var(--muted); margin:0 0 0.5rem;
+  }
+  p{ max-width:66ch; margin:0 0 1.1rem; }
+  code{
+    font-family:var(--font-mono); font-size:0.87em;
+    background:var(--surface-2); border:1px solid var(--border);
+    border-radius:3px; padding:0.05em 0.35em;
+  }
+  section{ margin-top:4.2rem; }
+
+  .bus-rule{
+    height:1px; margin:3.4rem 0;
+    background-image:repeating-linear-gradient(90deg, var(--border) 0 6px, transparent 6px 14px);
+  }
+
+  .diagram-wrap{
+    overflow-x:auto; margin:1.5rem 0 0.6rem;
+    border:1px solid var(--border); border-radius:10px;
+    background:var(--surface); padding:0.9rem 0.6rem;
+  }
+  svg.diagram{ display:block; min-width:600px; width:100%; height:auto; }
+  figure{ margin:0; }
+  figcaption{
+    font-family:var(--font-mono); font-size:0.78rem; color:var(--muted);
+    margin:0.6rem 0 0.4rem;
+  }
+
+  /* shared diagram styling */
+  .box{ fill:var(--surface); stroke:var(--border); stroke-width:1.5; }
+  .box-brass{ fill:var(--brass-soft); stroke:var(--brass); stroke-width:1.5; }
+  .box-cyan{ fill:var(--cyan-soft); stroke:var(--cyan); stroke-width:1.5; }
+  .box-title{ font-family:var(--font-mono); font-size:12.5px; font-weight:600; fill:var(--ink); }
+  .box-line{ font-family:var(--font-mono); font-size:11px; fill:var(--muted); }
+  .box-line-brass{ font-family:var(--font-mono); font-size:11px; fill:var(--brass-ink); }
+  .box-line-cyan{ font-family:var(--font-mono); font-size:11px; fill:var(--cyan-ink); }
+  .edge{ stroke:var(--muted); stroke-width:1.5; fill:none; }
+  .edge-brass{ stroke:var(--brass); stroke-width:1.8; fill:none; }
+  .edge-cyan{ stroke:var(--cyan); stroke-width:1.8; fill:none; }
+  .edge-dash{ stroke-dasharray:5 5; }
+  .edge-label{ font-family:var(--font-mono); font-size:10px; fill:var(--muted); }
+  .edge-label-cyan{ font-family:var(--font-mono); font-size:10px; fill:var(--cyan-ink); font-weight:600; }
+  .arrow-muted{ fill:var(--muted); }
+  .arrow-brass{ fill:var(--brass); }
+  .arrow-cyan{ fill:var(--cyan); }
+  .diagram-label{ font-family:var(--font-mono); font-size:11px; fill:var(--ink); font-weight:600; }
+  .lead{ stroke:var(--border); stroke-width:1.3; fill:none; }
+
+  /* concept card grid */
+  .card-grid{
+    display:grid; grid-template-columns:repeat(2, 1fr); gap:1rem;
+    margin-top:1.6rem;
+  }
+  @media (max-width:640px){ .card-grid{ grid-template-columns:1fr; } }
+  .card{
+    border:1px solid var(--border); border-radius:10px; background:var(--surface);
+    padding:1.2rem 1.3rem;
+  }
+  .card-head{ display:flex; align-items:center; gap:0.6rem; margin-bottom:0.7rem; }
+  .card-icon{ flex:none; width:28px; height:28px; }
+  .card h3{
+    font-family:var(--font-body); font-weight:600; font-size:1.02rem; margin:0;
+  }
+  .card ul{ margin:0; padding-left:1.1rem; }
+  .card li{ margin-bottom:0.5rem; font-size:0.93rem; }
+  .card li:last-child{ margin-bottom:0; }
+  .card li code{ font-size:0.85em; }
+
+  /* roadmap timeline */
+  .timeline-wrap{ overflow-x:auto; margin-top:1.8rem; }
+  svg.timeline{ display:block; min-width:640px; width:100%; height:auto; }
+  .stop-title{ font-family:var(--font-mono); font-weight:600; font-size:13px; fill:var(--ink); }
+  .stop-title-current{ font-family:var(--font-mono); font-weight:600; font-size:13px; fill:var(--brass-ink); }
+  .stop-desc{ font-family:var(--font-body); font-size:11.5px; fill:var(--muted); }
+  .stop-line{ stroke:var(--border); stroke-width:2; }
+  .stop-dot{ fill:var(--surface); stroke:var(--border); stroke-width:2; }
+  .stop-dot-current{ fill:var(--brass-soft); stroke:var(--brass); stroke-width:2.5; }
+
+  .footer{
+    margin-top:3.6rem; padding:1.4rem 1.5rem;
+    border:1px solid var(--border); border-radius:10px; background:var(--surface);
+  }
+  .footer p{ margin:0 0 0.5rem; max-width:none; }
+  .footer p:last-child{ margin-bottom:0; }
+  .footer a{ color:var(--cyan-ink); text-decoration:underline; text-underline-offset:2px; }
+  .footer a:focus-visible{ outline:2px solid var(--cyan); outline-offset:2px; border-radius:2px; }
+</style>
+
+<main>
+  <p class="eyebrow">project map &middot; autonomous tracking robot</p>
+  <h1>Signal &amp; Servo</h1>
+  <p class="lede">A pan-tilt turret that watches for a colored target through a Pi camera and,
+  for now, moves by hand &mdash; keyboard on one side, vision on the other, not yet talking to
+  each other. This page maps the hardware, the software, and the concepts behind both halves.</p>
+  <span class="stage-pill">currently at v1.1 &mdash; see roadmap below</span>
+
+  <section>
+    <p class="section-eyebrow">the rig</p>
+    <h2>What it's built from</h2>
+    <p>Two servos give the turret its pan/tilt axes; a third fires. A camera rides on the tilt
+    axis. Everything is driven from a Raspberry Pi over I2C, through a PCA9685 PWM driver board.</p>
+
+    <figure>
+      <div class="diagram-wrap">
+        <svg class="diagram" viewBox="0 0 880 400" role="img" aria-label="Side-view schematic of the turret: a camera and fire servo sit on a tilt axis, mounted on a pan servo base, wired through a PCA9685 driver to a Raspberry Pi running the control software. The camera's CSI ribbon is routed around the far right margin so it never crosses the component labels.">
+          <defs>
+            <marker id="rigArrowMuted" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" class="arrow-muted"/>
+            </marker>
+            <marker id="rigArrowCyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" class="arrow-cyan"/>
+            </marker>
+          </defs>
+
+          <!-- rig, all centered on x=385 -->
+          <rect class="box-cyan" x="355" y="30" width="60" height="44" rx="5"/>
+          <circle cx="385" cy="52" r="12" fill="none" stroke="var(--cyan)" stroke-width="1.5"/>
+
+          <rect class="box-brass" x="340" y="90" width="90" height="42" rx="5"/>
+          <line class="lead" x1="430" y1="111" x2="450" y2="111"/>
+          <rect class="box-brass" x="450" y="102" width="60" height="18" rx="3"/>
+
+          <rect class="box" x="377" y="132" width="16" height="48" rx="2"/>
+
+          <rect class="box-brass" x="335" y="180" width="100" height="40" rx="5"/>
+          <rect class="box" x="310" y="222" width="150" height="16" rx="2"/>
+
+          <!-- leader lines + labels, all in one right-hand column so nothing else crosses them -->
+          <path class="lead" d="M415,52 H560"/>
+          <text class="diagram-label" x="568" y="49">CAMERA</text>
+          <text class="box-line-cyan" x="568" y="64">turret_vision.py</text>
+
+          <path class="lead" d="M430,111 H560"/>
+          <text class="diagram-label" x="568" y="108">TILT SERVO</text>
+          <text class="box-line-brass" x="568" y="123">config.TILT_CHANNEL</text>
+
+          <path class="lead" d="M510,111 H535 V150 H560"/>
+          <text class="diagram-label" x="568" y="147">FIRE SERVO</text>
+          <text class="box-line-brass" x="568" y="162">config.FIRE_CHANNEL</text>
+
+          <path class="lead" d="M435,200 H560"/>
+          <text class="diagram-label" x="568" y="197">PAN SERVO</text>
+          <text class="box-line-brass" x="568" y="212">config.PAN_CHANNEL</text>
+
+          <!-- CSI ribbon: routed around the far margin, well clear of the label column -->
+          <path class="edge-cyan edge-dash" d="M415,52 V15 H810 V300 H640" marker-end="url(#rigArrowCyan)"/>
+          <text class="edge-label-cyan" x="700" y="28">CSI ribbon (Picamera2)</text>
+
+          <!-- wires down to boards -->
+          <path class="edge" d="M385,238 V270 L345,270 V300" marker-end="url(#rigArrowMuted)"/>
+          <text class="edge-label" x="392" y="258">3&times; PWM (servo signal)</text>
+
+          <rect class="box" x="260" y="300" width="170" height="56" rx="6"/>
+          <text class="box-title" x="274" y="324">PCA9685</text>
+          <text class="box-line" x="274" y="341">16-ch PWM driver</text>
+
+          <path class="edge" d="M430,328 H470" marker-end="url(#rigArrowMuted)"/>
+          <text class="edge-label" x="436" y="320">I2C (SDA/SCL)</text>
+
+          <rect class="box" x="470" y="300" width="170" height="56" rx="6"/>
+          <text class="box-title" x="484" y="324">Raspberry Pi</text>
+          <text class="box-line" x="484" y="341">runs main.py</text>
+        </svg>
+      </div>
+      <figcaption>Fig. 1 &mdash; the physical rig, and the two boards that drive it. Camera at top;
+      tilt and fire share an axis; pan sits below that on the mounting base.</figcaption>
+    </figure>
+  </section>
+
+  <div class="bus-rule"></div>
+
+  <section>
+    <p class="section-eyebrow">software</p>
+    <h2>Module map</h2>
+    <p><code>config.py</code> is the one file everything else depends on for wiring and tuning
+    constants. Brass boxes below are the mechanical/control half; cyan boxes are the vision half
+    &mdash; the two subsystems this whole project is trying to connect.</p>
+
+    <figure>
+      <div class="diagram-wrap">
+        <svg class="diagram" viewBox="0 0 880 320" role="img" aria-label="config.py is imported directly by turret_logic.py and turret_vision.py, and (noted separately, to avoid crossing lines) by color_tracker.py and vision_test.py too. main.py imports turret_logic.py. turret_vision.py's TurretVision class is imported by color_tracker.py and vision_test.py.">
+          <defs>
+            <marker id="modArrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" class="arrow-muted"/>
+            </marker>
+            <marker id="modArrowCyan" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" class="arrow-cyan"/>
+            </marker>
+          </defs>
+
+          <rect class="box" x="340" y="20" width="160" height="42" rx="6"/>
+          <text class="box-title" x="354" y="46">config.py</text>
+
+          <path class="lead edge-dash" d="M340,41 H60 V90"/>
+          <text class="edge-label" x="24" y="88">config.py is also imported</text>
+          <text class="edge-label" x="24" y="101">directly by color_tracker.py</text>
+          <text class="edge-label" x="24" y="114">and vision_test.py</text>
+
+          <rect class="box" x="30" y="140" width="150" height="46" rx="6"/>
+          <text class="box-title" x="44" y="162">main.py</text>
+          <text class="box-line" x="44" y="178">keyboard thread</text>
+
+          <rect class="box-brass" x="250" y="140" width="170" height="46" rx="6"/>
+          <text class="box-title" x="264" y="162">turret_logic.py</text>
+          <text class="box-line-brass" x="264" y="178">physics + arbiter</text>
+
+          <rect class="box-cyan" x="500" y="140" width="170" height="46" rx="6"/>
+          <text class="box-title" x="514" y="162">turret_vision.py</text>
+          <text class="box-line-cyan" x="514" y="178">camera thread</text>
+
+          <rect class="box-cyan" x="500" y="250" width="170" height="46" rx="6"/>
+          <text class="box-title" x="514" y="272">color_tracker.py</text>
+          <text class="box-line-cyan" x="514" y="288">HSV tracking</text>
+
+          <rect class="box-cyan" x="700" y="250" width="150" height="46" rx="6"/>
+          <text class="box-title" x="714" y="272">vision_test.py</text>
+          <text class="box-line-cyan" x="714" y="288">raw feed test</text>
+
+          <path class="edge" d="M380,62 C 360,90 345,115 335,140" marker-end="url(#modArrow)"/>
+          <text class="edge-label" x="356" y="100">import config</text>
+
+          <path class="edge" d="M460,62 C 500,90 550,115 585,140" marker-end="url(#modArrow)"/>
+          <text class="edge-label" x="540" y="100">import config</text>
+
+          <path class="edge" d="M180,163 H250" marker-end="url(#modArrow)"/>
+          <text class="edge-label" x="192" y="155">imports</text>
+
+          <path class="edge-cyan" d="M585,186 V250" marker-end="url(#modArrowCyan)"/>
+          <text class="edge-label-cyan" x="591" y="222">import TurretVision</text>
+
+          <path class="edge-cyan" d="M670,186 C 700,205 700,230 705,250" marker-end="url(#modArrowCyan)"/>
+        </svg>
+      </div>
+      <figcaption>Fig. 2 &mdash; who imports whom, as of v1.1. <code>config.py</code>'s edges to
+      <code>color_tracker.py</code>/<code>vision_test.py</code> are noted rather than drawn, so the
+      lines don't cut through <code>turret_vision.py</code>.</figcaption>
+    </figure>
+  </section>
+
+  <div class="bus-rule"></div>
+
+  <section>
+    <p class="section-eyebrow">behavior, right now</p>
+    <h2>Control flow &mdash; v1.1</h2>
+    <p>Manual control is fully wired: keyboard &rarr; <code>set_key()</code> &rarr; the
+    <code>mode</code>-gated arbiter &rarr; servos. The autonomous path exists as a scaffold &mdash;
+    <code>set_target_error()</code>, the <code>AUTO</code> branch, a <code>KP</code> constant &mdash;
+    but nothing calls it yet. That gap is the entire v2.0 milestone.</p>
+
+    <figure>
+      <div class="diagram-wrap">
+        <svg class="diagram" viewBox="0 0 760 260" role="img" aria-label="Keyboard input flows solidly through set_key into the mode arbiter and out to the servos. Vision's set_target_error path exists but is drawn dashed, because nothing calls it yet.">
+          <defs>
+            <marker id="cArrowB" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" class="arrow-brass"/>
+            </marker>
+            <marker id="cArrowC" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" class="arrow-cyan"/>
+            </marker>
+          </defs>
+
+          <rect class="box-brass" x="20" y="20" width="150" height="50" rx="6"/>
+          <text class="box-title" x="32" y="41">Keyboard</text>
+          <text class="box-line-brass" x="32" y="57">main.py</text>
+
+          <rect class="box-brass" x="210" y="20" width="160" height="50" rx="6"/>
+          <text class="box-title" x="222" y="39">set_key()</text>
+          <text class="box-line-brass" x="222" y="55">toggle_mode()</text>
+
+          <rect class="box-cyan" x="20" y="160" width="150" height="50" rx="6"/>
+          <text class="box-title" x="32" y="181">color_tracker.py</text>
+          <text class="box-line-cyan" x="32" y="197">finds dx, dy</text>
+
+          <rect class="box-cyan" x="210" y="160" width="160" height="50" rx="6"/>
+          <text class="box-title" x="222" y="179">set_target_error()</text>
+          <text class="box-line-cyan" x="222" y="195">not called yet</text>
+
+          <rect class="box" x="420" y="90" width="180" height="60" rx="6"/>
+          <text class="box-title" x="434" y="112">_control_step()</text>
+          <text class="box-line" x="434" y="128">mode: MANUAL | AUTO</text>
+          <text class="box-line" x="434" y="142">writes pan_vel/tilt_vel</text>
+
+          <rect class="box" x="650" y="95" width="90" height="50" rx="6"/>
+          <text class="box-title" x="661" y="126">Servos</text>
+
+          <path class="edge-brass" d="M170,45 H210" marker-end="url(#cArrowB)"/>
+          <path class="edge-brass" d="M370,45 C 400,55 400,75 460,90" marker-end="url(#cArrowB)"/>
+
+          <path class="edge-cyan edge-dash" d="M170,185 H210" marker-end="url(#cArrowC)"/>
+          <path class="edge-cyan edge-dash" d="M370,185 C 400,175 400,155 470,150" marker-end="url(#cArrowC)"/>
+
+          <path class="edge" d="M600,120 H650" marker-end="url(#cArrowB)"/>
+        </svg>
+      </div>
+      <figcaption>Fig. 3 &mdash; solid brass = live manual path. Dashed cyan = the wired-but-unused
+      autonomous path, waiting on a tracking loop and a tuned <code>KP</code>.</figcaption>
+    </figure>
+  </section>
+
+  <div class="bus-rule"></div>
+
+  <section>
+    <p class="section-eyebrow">vocabulary</p>
+    <h2>Concepts, grouped</h2>
+    <p>The same grouping as <code>NOTES.md</code> &mdash; this is the illustrated index; that file
+    has the full explanation of each.</p>
+
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-head">
+          <svg class="card-icon" viewBox="0 0 28 28" role="img" aria-label="Damped oscillation curve">
+            <path d="M2,14 C 6,4 9,4 12,14 S 18,20 21,14 S 24,11 26,14" fill="none" stroke="var(--brass)" stroke-width="1.8"/>
+          </svg>
+          <h3>Control / physics</h3>
+        </div>
+        <ul>
+          <li>Euler integration: <code>vel += acc</code>, <code>pos += vel</code></li>
+          <li>Friction/damping (<code>FRC = 0.90</code>) so motion settles</li>
+          <li>Fire sequence as an explicit state machine</li>
+          <li>Non-blocking <code>request_fire()</code></li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <svg class="card-icon" viewBox="0 0 28 28" role="img" aria-label="Lock icon">
+            <rect x="7" y="13" width="14" height="11" rx="2" fill="none" stroke="var(--brass)" stroke-width="1.8"/>
+            <path d="M10,13 V9 a4,4 0 0 1 8,0 v4" fill="none" stroke="var(--brass)" stroke-width="1.8"/>
+          </svg>
+          <h3>Concurrency</h3>
+        </div>
+        <ul>
+          <li>Daemon threads for keyboard + camera capture</li>
+          <li>Producer/consumer with a lock in <code>TurretVision</code></li>
+          <li><code>try/except/finally</code> lifecycle in <code>main.py</code></li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <svg class="card-icon" viewBox="0 0 28 28" role="img" aria-label="Color wheel wedge">
+            <path d="M14,14 L14,2 A12,12 0 0 1 24.4,20 Z" fill="var(--cyan-soft)" stroke="var(--cyan)" stroke-width="1.5"/>
+          </svg>
+          <h3>Vision</h3>
+        </div>
+        <ul>
+          <li>HSV thresholding &mdash; robust to lighting, unlike raw RGB</li>
+          <li>Erode/dilate to clean a noisy mask</li>
+          <li>Largest contour + radius filter to reject noise</li>
+          <li>Interactive HSV tuning via trackbars</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <svg class="card-icon" viewBox="0 0 28 28" role="img" aria-label="Single funnel merging two inputs">
+            <path d="M4,6 L11,14 M24,6 L17,14 M14,14 V24" fill="none" stroke="var(--brass)" stroke-width="1.8"/>
+            <circle cx="14" cy="14" r="3" fill="none" stroke="var(--brass)" stroke-width="1.8"/>
+          </svg>
+          <h3>Software hygiene &mdash; v1.1</h3>
+        </div>
+        <ul>
+          <li>Hardware mock pattern &mdash; runs with or without a Pi</li>
+          <li>Dirty-checking before I2C writes (<code>SERVO_EPS</code>)</li>
+          <li><code>config.py</code> as single source of truth</li>
+          <li>Mediator/arbiter (<code>_control_step()</code>) resolves one writer</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <div class="bus-rule"></div>
+
+  <section>
+    <p class="section-eyebrow">where this goes</p>
+    <h2>Roadmap</h2>
+    <p>Matches the roadmap in <code>NOTES.md</code>. v1.1 is the structural cleanup that had to
+    happen before v2.0 could add a second writer of turret state without a fight.</p>
+
+    <div class="timeline-wrap">
+      <svg class="timeline" viewBox="0 0 720 170" role="img" aria-label="Roadmap: v1.0 manual and vision built separately, v1.1 the current stage adding config.py and the mode arbiter, v2.0 closing the loop between vision and control, v3.0 adding logging and metrics.">
+        <line class="stop-line" x1="50" y1="60" x2="670" y2="60"/>
+
+        <circle class="stop-dot" cx="50" cy="60" r="7"/>
+        <text class="stop-title" x="50" y="36" text-anchor="middle">v1.0</text>
+        <text class="stop-desc" x="50" y="86" text-anchor="middle">manual + vision,</text>
+        <text class="stop-desc" x="50" y="100" text-anchor="middle">built separately</text>
+
+        <circle class="stop-dot-current" cx="270" cy="60" r="9"/>
+        <text class="stop-title-current" x="270" y="30" text-anchor="middle">v1.1 &mdash; you are here</text>
+        <text class="stop-desc" x="270" y="86" text-anchor="middle">config.py + mode</text>
+        <text class="stop-desc" x="270" y="100" text-anchor="middle">arbiter (this page)</text>
+
+        <circle class="stop-dot" cx="450" cy="60" r="7"/>
+        <text class="stop-title" x="450" y="36" text-anchor="middle">v2.0</text>
+        <text class="stop-desc" x="450" y="86" text-anchor="middle">vision drives the</text>
+        <text class="stop-desc" x="450" y="100" text-anchor="middle">servos &mdash; closed loop</text>
+
+        <circle class="stop-dot" cx="650" cy="60" r="7"/>
+        <text class="stop-title" x="650" y="36" text-anchor="middle">v3.0</text>
+        <text class="stop-desc" x="650" y="86" text-anchor="middle">logging, graphs,</text>
+        <text class="stop-desc" x="650" y="100" text-anchor="middle">tuning metrics</text>
+      </svg>
+    </div>
+  </section>
+
+  <div class="footer">
+    <p>Full concept explanations live in <code>NOTES.md</code> at the repo root.</p>
+    <p>The reasoning behind the v1.1 changes above is diagrammed in
+    <a href="https://claude.ai/code/artifact/4c28788d-6662-431b-bf55-73afa9a71b58">Single Point of Control</a>.</p>
+  </div>
+</main>

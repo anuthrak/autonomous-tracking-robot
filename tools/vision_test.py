@@ -1,11 +1,12 @@
 import cv2
 import time
-from turret_vision import TurretVision
+from turret.vision import TurretVision
+import config
 
 def main():
     # 1. Initialize our vision class at 640x480 for speed
-    width, height = 640, 480
-    vision = TurretVision(width=width, height=height, fps=60)
+    width, height = config.DEFAULT_WIDTH, config.DEFAULT_HEIGHT
+    vision = TurretVision(width=width, height=height, fps=config.DEFAULT_FPS)
     center = (width // 2, height // 2)
 
     print("Starting Live Feed... Press 'q' in the window to quit.")

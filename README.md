@@ -93,6 +93,12 @@ pip install -r requirements.txt
   ```
 - **Camera test** (live feed with a center crosshair, needs a display — run this over VNC, not plain SSH):
   ```bash
-  python3 vision_test.py
+  python3 -m tools.vision_test
   ```
+- **Color tracker tuning** (HSV trackbars to dial in a target color, needs a display):
+  ```bash
+  python3 -m tools.color_tracker
+  ```
+
+Run the `tools` scripts with `-m` from the repo root (not `python3 tools/vision_test.py`) so Python can resolve the `turret` package.
 

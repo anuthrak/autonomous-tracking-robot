@@ -6,8 +6,10 @@ import threading
 import time
 from picamera2 import Picamera2
 
+import config
+
 class TurretVision:
-    def __init__(self, width=640, height=480, fps=60):
+    def __init__(self, width=config.DEFAULT_WIDTH, height=config.DEFAULT_HEIGHT, fps=config.DEFAULT_FPS):
         self.width = width
         self.height = height
         self.picam2 = Picamera2()

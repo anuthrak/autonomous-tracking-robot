@@ -1,14 +1,15 @@
 import cv2
 import numpy as np
 import time
-from turret_vision import TurretVision
+from turret.vision import TurretVision
+import config
 
 def _nothing(x):
     pass
 
 def main():
-    width, height = 640, 480
-    vision = TurretVision(width=width, height=height, fps=30)
+    width, height = config.DEFAULT_WIDTH, config.DEFAULT_HEIGHT
+    vision = TurretVision(width=width, height=height, fps=config.TRACKING_FPS)
     center = (width // 2, height // 2)
 
     cv2.namedWindow("Controls")

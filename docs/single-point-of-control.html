@@ -1,0 +1,434 @@
+<!doctype html>
+<title>Single Point of Control</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --bg:#ECEEF2;
+    --surface:#FFFFFF;
+    --surface-2:#E2E6EE;
+    --ink:#14181F;
+    --muted:#5B6472;
+    --border:#C7CDD8;
+    --hazard:#B8480F;
+    --hazard-soft:#F5DFCF;
+    --fix:#0F6B5C;
+    --fix-soft:#D6ECE6;
+    --font-body:'IBM Plex Sans', ui-sans-serif, system-ui, sans-serif;
+    --font-mono:'IBM Plex Mono', ui-monospace, 'SFMono-Regular', Menlo, monospace;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#0D1219;
+      --surface:#161D2A;
+      --surface-2:#1D2636;
+      --ink:#E7ECF3;
+      --muted:#8C98AC;
+      --border:#2B3550;
+      --hazard:#FF9057;
+      --hazard-soft:#3A2417;
+      --fix:#4FD0B8;
+      --fix-soft:#123A34;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0D1219;
+    --surface:#161D2A;
+    --surface-2:#1D2636;
+    --ink:#E7ECF3;
+    --muted:#8C98AC;
+    --border:#2B3550;
+    --hazard:#FF9057;
+    --hazard-soft:#3A2417;
+    --fix:#4FD0B8;
+    --fix-soft:#123A34;
+  }
+
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    background:var(--bg);
+    color:var(--ink);
+    font-family:var(--font-body);
+    line-height:1.55;
+  }
+  main{
+    max-width:840px;
+    margin:0 auto;
+    padding:4.5rem 1.5rem 6rem;
+  }
+  .eyebrow{
+    font-family:var(--font-mono);
+    font-size:0.72rem;
+    letter-spacing:0.12em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin:0 0 0.9rem;
+  }
+  h1{
+    font-size:clamp(2rem, 4vw, 2.65rem);
+    font-weight:700;
+    margin:0 0 0.6rem;
+    text-wrap:balance;
+    letter-spacing:-0.01em;
+  }
+  .lede{
+    color:var(--muted);
+    font-size:1.05rem;
+    max-width:62ch;
+    margin:0 0 3rem;
+  }
+  section.issue{ margin-top:4rem; }
+  .issue-eyebrow{
+    font-family:var(--font-mono);
+    font-size:0.72rem;
+    letter-spacing:0.1em;
+    text-transform:uppercase;
+    color:var(--hazard);
+    margin:0 0 0.5rem;
+  }
+  h2{
+    font-size:1.55rem;
+    font-weight:600;
+    margin:0 0 1.1rem;
+    text-wrap:balance;
+  }
+  p{
+    max-width:66ch;
+    margin:0 0 1.1rem;
+  }
+  strong{ font-weight:600; }
+  code{
+    font-family:var(--font-mono);
+    font-size:0.88em;
+    background:var(--surface-2);
+    border:1px solid var(--border);
+    border-radius:3px;
+    padding:0.05em 0.35em;
+  }
+
+  .bus-rule{
+    height:1px;
+    margin:3.2rem 0;
+    background-image:repeating-linear-gradient(90deg, var(--border) 0 6px, transparent 6px 14px);
+  }
+
+  .diagram-wrap{
+    overflow-x:auto;
+    margin:1.6rem 0 0.6rem;
+    border:1px solid var(--border);
+    border-radius:8px;
+    background:var(--surface);
+    padding:0.75rem 0.5rem;
+  }
+  svg.diagram{
+    display:block;
+    min-width:560px;
+    width:100%;
+    height:auto;
+  }
+  figcaption{
+    font-family:var(--font-mono);
+    font-size:0.78rem;
+    color:var(--muted);
+    margin:0.6rem 0 1.6rem;
+  }
+  figure{ margin:0; }
+
+  .box{ fill:var(--surface); stroke:var(--border); stroke-width:1.5; }
+  .box-hazard{ fill:var(--hazard-soft); stroke:var(--hazard); stroke-width:1.5; }
+  .box-fix{ fill:var(--fix-soft); stroke:var(--fix); stroke-width:1.5; }
+  .box-title{ font-family:var(--font-mono); font-size:12.5px; font-weight:600; fill:var(--ink); }
+  .box-line{ font-family:var(--font-mono); font-size:11px; fill:var(--muted); }
+  .box-line-hazard{ font-family:var(--font-mono); font-size:11px; fill:var(--hazard); }
+  .box-line-fix{ font-family:var(--font-mono); font-size:11px; fill:var(--fix); }
+  .panel-title{ font-family:var(--font-mono); font-size:11.5px; font-weight:600; letter-spacing:0.06em; text-transform:uppercase; fill:var(--muted); }
+  .panel-title-fix{ fill:var(--fix); }
+  .edge{ stroke:var(--muted); stroke-width:1.5; fill:none; }
+  .edge-hazard{ stroke:var(--hazard); stroke-width:2; fill:none; }
+  .edge-fix{ stroke:var(--fix); stroke-width:2; fill:none; }
+  .edge-dash{ stroke-dasharray:4 4; }
+  .edge-label{ font-family:var(--font-mono); font-size:10px; fill:var(--muted); }
+  .edge-label-hazard{ font-family:var(--font-mono); font-size:10px; fill:var(--hazard); font-weight:600; }
+  .divider{ stroke:var(--border); stroke-width:1; stroke-dasharray:3 4; }
+  .arrowhead{ fill:var(--muted); }
+  .arrowhead-hazard{ fill:var(--hazard); }
+  .arrowhead-fix{ fill:var(--fix); }
+
+  pre{
+    font-family:var(--font-mono);
+    font-size:0.82rem;
+    background:var(--surface-2);
+    border-left:3px solid var(--border);
+    border-radius:4px;
+    padding:0.9rem 1.1rem;
+    overflow-x:auto;
+    margin:1rem 0 1.6rem;
+    line-height:1.6;
+  }
+  pre.hazard{ border-left-color:var(--hazard); }
+  pre.fix{ border-left-color:var(--fix); }
+  .snippet-label{
+    font-family:var(--font-mono);
+    font-size:0.7rem;
+    letter-spacing:0.08em;
+    text-transform:uppercase;
+    color:var(--muted);
+    margin:0 0 0.35rem;
+  }
+
+  .close{
+    margin-top:3.5rem;
+    padding:1.4rem 1.5rem;
+    border:1px solid var(--border);
+    border-radius:8px;
+    background:var(--surface);
+  }
+  .close p:last-child{ margin-bottom:0; }
+</style>
+
+<main>
+  <p class="eyebrow">architecture note &middot; expands review items #1 and #4</p>
+  <h1>Single Point of Control</h1>
+  <p class="lede">Two review findings, looked at closely: nothing currently owns the turret's shared
+  state, and its tuning constants live scattered across four files. Both are the same underlying
+  problem wearing different clothes.</p>
+
+  <section class="issue">
+    <p class="issue-eyebrow">issue #1</p>
+    <h2>No single owner for shared state</h2>
+    <p>Today this isn't a bug &mdash; it's a coincidence that works. <code>physics_loop()</code> is the
+    only thing that ever assigns <code>pan_vel</code>, <code>tilt_vel</code>, <code>pan_angle</code>,
+    and <code>tilt_angle</code> while the turret is running. <code>smooth_reset()</code> touches the
+    same variables, but only after <code>physics_loop()</code> has already exited on shutdown &mdash;
+    sequential, never at the same instant.</p>
+
+    <figure>
+      <div class="diagram-wrap">
+        <svg class="diagram" viewBox="0 0 640 210" role="img" aria-label="Keyboard thread writes keys, physics_loop reads keys and writes servo angles; smooth_reset writes the same servos later, after physics_loop has already exited, so there is never more than one writer at a time.">
+          <defs>
+            <marker id="a1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" class="arrowhead"/>
+            </marker>
+          </defs>
+          <rect class="box" x="20" y="26" width="150" height="56" rx="6"/>
+          <text class="box-title" x="34" y="50">Keyboard thread</text>
+          <text class="box-line" x="34" y="68">main.py</text>
+
+          <rect class="box" x="212" y="26" width="120" height="56" rx="6"/>
+          <text class="box-title" x="226" y="50">keys{}</text>
+          <text class="box-line" x="226" y="68">turret.keys</text>
+
+          <rect class="box" x="374" y="18" width="156" height="72" rx="6"/>
+          <text class="box-title" x="388" y="42">physics_loop()</text>
+          <text class="box-line" x="388" y="59">writes pan/tilt</text>
+          <text class="box-line" x="388" y="73">angle &amp; velocity</text>
+
+          <rect class="box" x="562" y="26" width="58" height="56" rx="6"/>
+          <text class="box-title" x="571" y="58">I2C</text>
+
+          <path class="edge" d="M170,54 H212" marker-end="url(#a1)"/>
+          <text class="edge-label" x="174" y="46">press/release</text>
+
+          <path class="edge" d="M332,54 H374" marker-end="url(#a1)"/>
+          <text class="edge-label" x="336" y="46">reads</text>
+
+          <path class="edge" d="M530,54 H562" marker-end="url(#a1)"/>
+          <text class="edge-label" x="534" y="46">_write_servo()</text>
+
+          <rect class="box" x="374" y="146" width="156" height="52" rx="6"/>
+          <text class="box-title" x="388" y="168">smooth_reset()</text>
+          <text class="box-line" x="388" y="184">on Ctrl+C</text>
+
+          <path class="edge edge-dash" d="M530,172 C 600,172 600,54 620,54" marker-end="url(#a1)"/>
+          <text class="edge-label" x="536" y="200">writes the same servos &mdash; after physics_loop() has already exited</text>
+        </svg>
+      </div>
+      <figcaption>Fig. 1 &mdash; v1.x: exactly one writer of turret state is ever active at a time.</figcaption>
+    </figure>
+
+    <p>v2.0 adds a second live writer: the tracking loop, turning vision's <code>dx</code> into a
+    velocity nudge. Now it wants to touch <code>pan_vel</code> in the same tick the keyboard thread
+    might also be pushing on it &mdash; say you tap <code>a</code> out of habit mid-track. Nothing in
+    the code decides whose write should count that tick; whichever line happens to run last wins,
+    silently, by code order rather than intent.</p>
+
+    <figure>
+      <div class="diagram-wrap">
+        <svg class="diagram" viewBox="0 0 720 340" role="img" aria-label="Left: keyboard and vision both write pan_vel directly, colliding in the same tick. Right: keyboard and vision instead submit requests to a mode-gated arbiter, which is the only thing that writes pan_vel.">
+          <defs>
+            <marker id="a2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" class="arrowhead-hazard"/>
+            </marker>
+            <marker id="a3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" class="arrowhead-fix"/>
+            </marker>
+          </defs>
+
+          <line class="divider" x1="360" y1="10" x2="360" y2="330"/>
+
+          <text class="panel-title" x="30" y="24">without an arbiter</text>
+          <rect class="box" x="30" y="40" width="130" height="52" rx="6"/>
+          <text class="box-title" x="42" y="61">Keyboard</text>
+          <text class="box-line" x="42" y="77">keys["a"]=True</text>
+
+          <rect class="box" x="180" y="40" width="130" height="52" rx="6"/>
+          <text class="box-title" x="192" y="61">Vision</text>
+          <text class="box-line" x="192" y="77">dx, dy</text>
+
+          <rect class="box-hazard" x="95" y="150" width="160" height="52" rx="6"/>
+          <text class="box-title" x="107" y="171">pan_vel / tilt_vel</text>
+          <text class="box-line-hazard" x="107" y="187">both write here</text>
+
+          <path class="edge-hazard" d="M95,92 C 90,120 130,130 155,150" marker-end="url(#a2)"/>
+          <path class="edge-hazard" d="M245,92 C 250,120 210,130 195,150" marker-end="url(#a2)"/>
+          <text class="edge-label-hazard" x="100" y="132">collide same tick</text>
+
+          <rect class="box" x="95" y="252" width="160" height="52" rx="6"/>
+          <text class="box-title" x="107" y="273">Servos</text>
+          <text class="box-line" x="107" y="289">last write wins</text>
+          <path class="edge-hazard" d="M175,202 V252" marker-end="url(#a2)"/>
+
+          <text class="panel-title panel-title-fix" x="390" y="24">with a single arbiter</text>
+          <rect class="box" x="390" y="40" width="140" height="52" rx="6"/>
+          <text class="box-title" x="402" y="61">Keyboard</text>
+          <text class="box-line" x="402" y="77">set_key()</text>
+
+          <rect class="box" x="550" y="40" width="140" height="52" rx="6"/>
+          <text class="box-title" x="562" y="61">Vision</text>
+          <text class="box-line" x="562" y="77">set_target_error()</text>
+
+          <rect class="box-fix" x="460" y="150" width="160" height="52" rx="6"/>
+          <text class="box-title" x="472" y="169">mode: MANUAL | AUTO</text>
+          <text class="box-line-fix" x="472" y="185">resolves one command</text>
+
+          <path class="edge-fix" d="M455,92 C 450,120 490,130 515,150" marker-end="url(#a3)"/>
+          <path class="edge-fix" d="M615,92 C 620,120 580,130 565,150" marker-end="url(#a3)"/>
+
+          <rect class="box" x="460" y="252" width="160" height="52" rx="6"/>
+          <text class="box-title" x="472" y="273">Servos</text>
+          <text class="box-line" x="472" y="289">one write, resolved</text>
+          <path class="edge-fix" d="M540,202 V252" marker-end="url(#a3)"/>
+        </svg>
+      </div>
+      <figcaption>Fig. 2 &mdash; same two inputs, different middle step. An arbiter gated on <code>mode</code> is the only thing allowed to write <code>pan_vel</code>/<code>tilt_vel</code>; both inputs hand it a request instead of writing directly.</figcaption>
+    </figure>
+
+    <p class="snippet-label">illustrative sketch, not final code</p>
+    <pre class="fix"><code>mode = "MANUAL"   # or "AUTO", flipped by a mode-toggle key
+
+def control_step():
+    if mode == "MANUAL":
+        if keys["a"]: pan_vel += ACC
+        if keys["d"]: pan_vel -= ACC
+    elif mode == "AUTO":
+        pan_vel += Kp * target_dx
+
+    # control_step() is the ONLY place pan_vel is ever assigned.
+    # Keyboard and vision each hand it a request; neither writes
+    # pan_vel directly anymore.</code></pre>
+  </section>
+
+  <div class="bus-rule"></div>
+
+  <section class="issue">
+    <p class="issue-eyebrow">issue #4</p>
+    <h2>Config scattered across files</h2>
+    <p>Servo channels, physics constants, and vision defaults are all typed as bare literals at
+    their call sites, not named or centralized. The scatter already produced a real inconsistency:
+    <code>color_tracker.py</code> requests the camera at <code>fps=30</code>, while
+    <code>vision_test.py</code> and <code>TurretVision</code>'s own default both use
+    <code>fps=60</code> &mdash; nothing flags that the two scripts disagree.</p>
+
+    <figure>
+      <div class="diagram-wrap">
+        <svg class="diagram" viewBox="0 0 720 420" role="img" aria-label="Left: four files each hold their own copy of constants, with color_tracker.py's fps=30 quietly disagreeing with vision_test.py's fps=60. Right: one config.py holds every named constant, and all four files import from it.">
+          <defs>
+            <marker id="a4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6.5" markerHeight="6.5" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" class="arrowhead-fix"/>
+            </marker>
+          </defs>
+
+          <line class="divider" x1="360" y1="10" x2="360" y2="410"/>
+
+          <text class="panel-title" x="30" y="24">scattered</text>
+
+          <rect class="box" x="30" y="36" width="300" height="66" rx="6"/>
+          <text class="box-title" x="44" y="58">turret_logic.py</text>
+          <text class="box-line" x="44" y="74">ACC, FRC, TIME_LOOP, SERVO_EPS</text>
+          <text class="box-line-hazard" x="44" y="90">channels 0/1/2 &mdash; retyped at 3 call sites</text>
+
+          <rect class="box" x="30" y="118" width="300" height="46" rx="6"/>
+          <text class="box-title" x="44" y="138">turret_vision.py</text>
+          <text class="box-line" x="44" y="154">default fps=60</text>
+
+          <rect class="box" x="30" y="180" width="300" height="46" rx="6"/>
+          <text class="box-title" x="44" y="200">color_tracker.py</text>
+          <text class="box-line-hazard" x="44" y="216">width,height=640,480 &nbsp; fps=30</text>
+
+          <rect class="box" x="30" y="242" width="300" height="46" rx="6"/>
+          <text class="box-title" x="44" y="262">vision_test.py</text>
+          <text class="box-line-hazard" x="44" y="278">width,height=640,480 &nbsp; fps=60</text>
+
+          <path class="edge-hazard edge-dash" d="M330,203 C 345,220 345,242 330,258"/>
+          <text class="edge-label-hazard" x="336" y="235">fps mismatch</text>
+
+          <text class="panel-title panel-title-fix" x="390" y="24">centralized</text>
+
+          <rect class="box-fix" x="390" y="36" width="300" height="150" rx="6"/>
+          <text class="box-title" x="404" y="60">config.py</text>
+          <text class="box-line-fix" x="404" y="80">PAN_CHANNEL, TILT_CHANNEL, FIRE_CHANNEL</text>
+          <text class="box-line-fix" x="404" y="98">ACC, FRC, TIME_LOOP, SERVO_EPS</text>
+          <text class="box-line-fix" x="404" y="116">FIRE_MIN, FIRE_MAX, FIRE_STEP</text>
+          <text class="box-line-fix" x="404" y="134">DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_FPS</text>
+          <text class="box-line-fix" x="404" y="152">(later) Kp, Ki, Kd, TARGET_LOST_TIMEOUT</text>
+
+          <rect class="box" x="390" y="228" width="140" height="46" rx="6"/>
+          <text class="box-title" x="402" y="248">turret_logic.py</text>
+          <text class="box-line" x="402" y="264">import config</text>
+
+          <rect class="box" x="550" y="228" width="140" height="46" rx="6"/>
+          <text class="box-title" x="562" y="248">turret_vision.py</text>
+          <text class="box-line" x="562" y="264">import config</text>
+
+          <rect class="box" x="390" y="292" width="140" height="46" rx="6"/>
+          <text class="box-title" x="402" y="312">color_tracker.py</text>
+          <text class="box-line" x="402" y="328">import config</text>
+
+          <rect class="box" x="550" y="292" width="140" height="46" rx="6"/>
+          <text class="box-title" x="562" y="312">vision_test.py</text>
+          <text class="box-line" x="562" y="328">import config</text>
+
+          <path class="edge-fix" d="M460,186 V228" marker-end="url(#a4)"/>
+          <path class="edge-fix" d="M580,186 C 600,200 610,210 615,228" marker-end="url(#a4)"/>
+          <path class="edge-fix" d="M460,186 C 450,220 450,270 460,292" marker-end="url(#a4)"/>
+          <path class="edge-fix" d="M580,186 C 610,230 610,260 615,292" marker-end="url(#a4)"/>
+        </svg>
+      </div>
+      <figcaption>Fig. 3 &mdash; the same four files, before and after. One trunk of named constants, imported everywhere, instead of four independent copies.</figcaption>
+    </figure>
+
+    <p class="snippet-label">illustrative sketch, not final code</p>
+    <pre><code>&#35; config.py &mdash; physical wiring + tuned constants, single source of truth
+PAN_CHANNEL, TILT_CHANNEL, FIRE_CHANNEL = 0, 1, 2
+
+ACC, FRC, TIME_LOOP = 0.3, 0.90, 0.02
+SERVO_EPS = 0.05
+
+FIRE_MIN, FIRE_MAX, FIRE_STEP = 90.0, 150.0, 5.0
+
+DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_FPS = 640, 480, 30</code></pre>
+
+    <p>Why it's worth doing before v2.0 specifically: if the fire servo's wiring ever moves to a
+    different PCA9685 channel, today that means hunting down the literal <code>2</code> across
+    <code>calibrate()</code>, <code>_update_fire()</code>, and anywhere else it's typed &mdash; and a
+    typo like <code>_write_servo(1, fire_angle)</code> would silently fire the tilt servo instead,
+    with no error raised. One named constant removes the hunt entirely.</p>
+  </section>
+
+  <div class="close">
+    <p>Both fixes are the same idea: give every piece of state exactly one place that's allowed to
+    change it &mdash; a mode-gated arbiter for behavior, a <code>config.py</code> for constants. Per
+    <code>NOTES.md</code>, these are the two things worth doing as v1.x cleanup, before v2.0 adds a
+    second concurrent writer that needs somewhere sane to plug in.</p>
+  </div>
+</main>
